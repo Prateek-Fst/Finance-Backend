@@ -44,6 +44,10 @@ const getUserById = async (req, res, next) => {
 // PUT /api/users/:id  (admin only) - update role or status
 const updateUser = async (req, res, next) => {
   try {
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: "You cannot update your own account." });
+    }
+
     const { role, status, name } = req.body;
     const allowed = {};
 
