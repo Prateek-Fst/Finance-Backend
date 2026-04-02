@@ -1,6 +1,9 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
 
@@ -8,6 +11,13 @@ const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// CORS - Allow all origins for API documentation and cross-origin requests
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 // Body parser
 app.use(express.json());
@@ -23,6 +33,18 @@ const limiter = rateLimit({
   },
 });
 app.use("/api", limiter);
+
+// Swagger docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: "Finance Dashboard API Docs",
+  swaggerOptions: { persistAuthorization: true },
+}));
+
+// Swagger JSON endpoint
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 
 // Health check
 app.get("/", (req, res) => {
@@ -52,8 +74,13 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://finance-backend-fxvz.onrender.com' 
+  : `http://localhost:${PORT}`;
+
 app.listen(PORT, () => {
-  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📦 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🗄️  MongoDB: ${process.env.MONGO_URI}\n`);
+  console.log(`Server running on ${BASE_URL}`);
+  console.log(`API Docs: ${BASE_URL}/api-docs`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`MongoDB: ${process.env.MONGO_URI}\n`);
 });
